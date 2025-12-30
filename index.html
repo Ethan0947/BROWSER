@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EthanOS Mobile</title>
+    <title>EthanOS Mobile V3</title>
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.12/lunar.js"></script>
     <style>
         /* 全局設定 */
         body {
@@ -16,11 +17,11 @@
             justify-content: center;
             align-items: center;
             background-color: #1a1a1a;
-            /* 換一張更適合手機的直式/橫式通用圖 */
+            /* 背景圖：你可以換成自己喜歡的網址 */
             background-image: url('https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=2940&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
-            background-attachment: fixed; /* 讓背景固定不動 */
+            background-attachment: fixed;
             color: white;
         }
 
@@ -30,8 +31,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5); /* 手機上背景暗一點，字才清楚 */
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.4); /* 背景暗度 */
+            backdrop-filter: blur(5px);
             z-index: 0;
         }
 
@@ -44,21 +45,22 @@
             padding: 20px 0;
         }
 
-        /* 時鐘模組 */
+        /* 時鐘與日期模組 */
         .clock-box {
             margin-bottom: 30px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.6);
         }
         .time {
-            font-size: 5rem; /* 電腦版大小 */
+            font-size: 5rem;
             font-weight: 200;
             line-height: 1;
-            text-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
         .date {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 300;
             opacity: 0.9;
-            margin-top: 5px;
+            margin-top: 10px;
+            line-height: 1.5; /* 讓兩行字不要黏太緊 */
         }
 
         /* 搜尋框 */
@@ -80,13 +82,14 @@
             color: white;
             border: 1px solid rgba(255, 255, 255, 0.2);
             text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         .search-input::placeholder { color: rgba(255, 255, 255, 0.7); }
 
-        /* 傳送門 (RWD 核心) */
+        /* 傳送門 */
         .links-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* 自動排版 */
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
             gap: 15px;
             width: 100%;
         }
@@ -104,22 +107,19 @@
             color: white;
             transition: transform 0.2s;
         }
-        .link-card:active { transform: scale(0.95); } /* 手機按下去的縮放感 */
+        .link-card:active { transform: scale(0.95); }
 
         .link-icon { font-size: 2rem; margin-bottom: 5px; }
         .link-name { font-size: 0.9rem; }
 
-        /* 📱 手機版專屬調整 (當螢幕小於 600px 時) */
+        /* 手機版適配 */
         @media (max-width: 600px) {
-            .time { font-size: 4rem; } /* 手機上時間字體縮小一點 */
+            .time { font-size: 4rem; }
             .links-grid {
-                grid-template-columns: repeat(3, 1fr); /* 手機強制一行三個 */
+                grid-template-columns: repeat(3, 1fr);
                 gap: 10px;
             }
-            .link-card {
-                height: 90px; /* 手機上按鈕稍微矮一點 */
-                background: rgba(255, 255, 255, 0.2); /* 手機上亮一點比較好按 */
-            }
+            .link-card { height: 90px; }
         }
     </style>
 </head>
@@ -152,7 +152,6 @@
                 <span class="link-icon">🗺️</span>
                 <span class="link-name">地圖</span>
             </a>
-
             <a href="https://gemini.google.com" class="link-card">
                 <span class="link-icon">✨</span>
                 <span class="link-name">Gemini</span>
@@ -161,9 +160,8 @@
                 <span class="link-icon">🤖</span>
                 <span class="link-name">ChatGPT</span>
             </a>
-            
             <a href="https://www.youtube.com" class="link-card">
-                <span class="link-icon">▶️</span>
+                <span class="link-icon">📺</span>
                 <span class="link-name">YouTube</span>
             </a>
         </div>
@@ -172,15 +170,46 @@
     <script>
         function updateTime() {
             const now = new Date();
+            
+            // 1. 時間
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             document.getElementById('time').innerText = `${hours}:${minutes}`;
             
-            const options = { weekday: 'short', month: 'short', day: 'numeric' };
-            document.getElementById('date').innerText = now.toLocaleDateString('zh-TW', options);
+            // 2. 日期 (民國 + 西元)
+            const year = now.getFullYear();
+            const rocYear = year - 1911; // 民國年
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const weekDays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+            const weekDay = weekDays[now.getDay()];
+
+            // 3. 農曆 (使用外掛)
+            let lunarString = "";
+            try {
+                if (typeof Lunar !== 'undefined') {
+                    const lunar = Lunar.fromDate(now);
+                    // 取得干支年 (例如：甲辰) + 生肖 (例如：龍) + 日期
+                    lunarString = `農曆 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()} (${lunar.getYearInGanZhi()}年)`;
+                } else {
+                    lunarString = "農曆載入中...";
+                }
+            } catch (e) {
+                console.log("農曆錯誤:", e);
+                lunarString = ""; // 出錯就不顯示，避免介面壞掉
+            }
+
+            // 4. 組合顯示 (加入換行 <br>)
+            const dateString = `民國${rocYear}年 (${year}) ${month}月${day}日 ${weekDay}<br><span style="font-size:0.85em; opacity:0.8; margin-top:5px; display:inline-block;">${lunarString}</span>`;
+            
+            document.getElementById('date').innerHTML = dateString;
         }
+
+        // 每秒更新
         setInterval(updateTime, 1000);
+        // 立即執行一次，避免 00:00 等待
         updateTime();
     </script>
 </body>
+
 </html>
