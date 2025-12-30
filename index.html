@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>EthanOS Mobile</title>
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.12/lunar.js"></script>
     <style>
         /* 全局設定 */
         body {
@@ -170,17 +171,42 @@
     </div>
 
     <script>
+        <script>
         function updateTime() {
             const now = new Date();
+            
+            // 1. 時間 (保持原樣)
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             document.getElementById('time').innerText = `${hours}:${minutes}`;
             
-            const options = { weekday: 'short', month: 'short', day: 'numeric' };
-            document.getElementById('date').innerText = now.toLocaleDateString('zh-TW', options);
+            // 2. 日期計算 (民國 + 西元)
+            const year = now.getFullYear();
+            const rocYear = year - 1911; // 計算民國年
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const weekDays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+            const weekDay = weekDays[now.getDay()];
+
+            // 3. 農曆計算 (呼叫剛剛引入的外掛)
+            let lunarString = "";
+            try {
+                const lunar = Lunar.fromDate(now);
+                // 格式範例：農曆 十一月初十 [龍]
+                lunarString = `農曆 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`;
+            } catch (e) {
+                console.log("農曆載入失敗");
+            }
+
+            // 4. 組合顯示字串
+            // 顯示格式：民國114年 (2025) 12月30日 週二 | 農曆 十一月初十
+            const dateString = `民國${rocYear}年 (${year}) ${month}月${day}日 ${weekDay} <br> <span style="font-size:0.8em; opacity:0.7">${lunarString}</span>`;
+            
+            // 塞回 HTML
+            document.getElementById('date').innerHTML = dateString;
         }
+
         setInterval(updateTime, 1000);
         updateTime();
     </script>
-</body>
-</html>
+
